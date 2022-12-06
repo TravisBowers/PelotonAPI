@@ -1,13 +1,19 @@
 import pandas as pd
 import requests
 import json
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 from functools import reduce
+import os
+import openpyxl
 
 #Some inputs for the User - could be changed from prompts to hard coded values
-user = input('Enter your username or email: ')
-pw = input('Enter your password: ')
-excel = input('Specify Excel filename & location (include ".xlsx"): ')
+#user = input('Enter your username or email: ')
+#pw = input('Enter your password: ')
+#excel = input('Specify Excel filename & location (include ".xlsx"): ')
+
+user = os.getenv('PELOTON_USER')
+pw = os.getenv('PELOTON_PASSWORD')
+excel = './peloton.xlsx'
 
 #Authenticate the user
 s = requests.Session()
@@ -21,33 +27,37 @@ response = s.get(me_url)
 apidata = s.get(me_url).json()
 
 #Flatten API response into a temporary dataframe
-df_my_id = json_normalize(apidata, 'id', ['id'])
-df_my_id_clean = df_my_id.iloc[0]
-my_id = (df_my_id_clean.drop([0])).values.tolist()
+#print(json.dumps(apidata, indent=2))
+my_id = (apidata['id'])
+print(my_id)
+# df_my_id = json_normalize(apidata, 'id', ['id'])
+# df_my_id_clean = df_my_id.iloc[0]
+# my_id = (df_my_id_clean.drop([0])).values.tolist()
 
-'''Second API Call - GET Workout, Ride & Instructor Details''' 
-#API URL - 
-url = 'https://api.onepeloton.com/api/user/{}/workouts?joins=ride,ride.instructor&limit=250&page=0'.format(*my_id)
+'''Second API Call - GET Workout, Ride & Instructor Details'''
+#API URL -
+url = 'https://api.onepeloton.com/api/user/{id}/workouts?joins=ride,ride.instructor&limit=250&page=0'.format(id = my_id)
+print(url)
 response = s.get(url)
 data = s.get(url).json()
-
+print(json.dumps(data, indent=2))
 #Flatten API response into a temporary dataframe
 df_workouts_raw = json_normalize(data['data'])
 
-#Keep only necessary columns as a new pandas dataframe - this list can be modified based on the user's 
+#Keep only necessary columns as a new pandas dataframe - this list can be modified based on the user's
 #preference.  Right now, primarily excluding duplicated columns, excess ID columns, and social media
 #columns for the Instructors
-df_workouts = df_workouts_raw.drop(df_workouts_raw.columns[[4, 5, 11, 13, 
-15, 16, 17, 20, 24, 25, 27, 28, 29, 31, 32, 33, 35, 37, 39, 40, 41, 42, 
-43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 63, 
-64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 76, 77, 78, 79, 80, 81, 82, 
-83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 96, 97, 98, 99, 100, 103, 
+df_workouts = df_workouts_raw.drop(df_workouts_raw.columns[[4, 5, 11, 13,
+15, 16, 17, 20, 24, 25, 27, 28, 29, 31, 32, 33, 35, 37, 39, 40, 41, 42,
+43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 63,
+64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 76, 77, 78, 79, 80, 81, 82,
+83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 96, 97, 98, 99, 100, 103,
 105, 106, 107, 108]], axis = 1)
 
 #Print Message Workout Data Complete
 print('Workout Data processing complete')
 
-'''Third API Call - GET Workout Metrics''' 
+'''Third API Call - GET Workout Metrics'''
 #Create Dataframe of Workout IDs to run through our Loop
 df_workout_ids = df_workouts.filter(['id'], axis=1)
 
@@ -62,7 +72,7 @@ df_avg_metrics = pd.DataFrame([])
 for workout_id in workout_ids2:
      response2 = s.get('https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=300'.format(workout_id))
      data2 = response2.json()
-     #Flatten API response into a temporary dataframe - exception handling because each workout type has a 
+     #Flatten API response into a temporary dataframe - exception handling because each workout type has a
      #different structure to the API response, with different metrics.  Additionally, this call also generates
      #a number of rows so we have to transpose and flatten the dataframe.
      try:
@@ -108,10 +118,11 @@ df_tot_metrics_clean = df_tot_metrics.drop_duplicates()
 df_avg_metrics_clean = df_avg_metrics.drop_duplicates()
 df_workout_metrics = df_avg_metrics_clean.merge(df_tot_metrics_clean, left_on='id', right_on='id', how='right')
 
+df_workout_metrics.to_excel(excel)
 #Print Message Workout Metrics Complete
 print('Workout Metrics processing complete')
 
-'''Fourth API Call - GET Workout Achievements''' 
+'''Fourth API Call - GET Workout Achievements'''
 df_workout_achievements = pd.DataFrame([])
 
 for workout_id in workout_ids2:
@@ -123,7 +134,7 @@ for workout_id in workout_ids2:
 
 df_achievements = df_workout_achievements.drop(['id', 'template.id', 'template.slug', 'template_id', 'user_id'], axis=1)
 
-#Work to put all achievements for a workout on one row - I've chosen to break out to 4 achievements on a workout.  Could possibly 
+#Work to put all achievements for a workout on one row - I've chosen to break out to 4 achievements on a workout.  Could possibly
 #be more.  Would need to account for this if so.
 #First Step - create a counter by Workout ID
 df_achievements['counter'] = df_achievements.sort_values(['workout_id'], ascending=[1]).groupby('workout_id').cumcount() + 1
