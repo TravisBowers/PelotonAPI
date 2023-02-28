@@ -24,6 +24,15 @@ def get_completed_rides(session, user_id):
     df_workouts_raw = json_normalize(data['data'])
     return df_workouts_raw
 
+def get_workout_metrics(session, workout_id):
+    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph'.format(workout_id)
+    response = session.get(url)
+    data = response.json()
+    print(type(workout_id))
+    print("getting workout metrics for workout:" + workout_id)
+    print(data)
+    df_workout_metrics = json_normalize(data['metrics'])
+    return df_workout_metrics
 
 
 def main():
@@ -34,8 +43,15 @@ def main():
     peloton_login(user, pw, s)
     user_id = get_user_id(s)
     workouts = get_completed_rides(s, user_id)
+    df_workout_ids = workouts.filter(['id'], axis=1)
+    workout_ids = df_workout_ids.values.tolist()
 
-    print(workouts.to_string())
+    for i in workout_ids:
+        workout_id = i[0]
+        metrics = get_workout_metrics(s, workout_id)
+        print(metrics.to_string())
+
+    #print(workout_ids)
 
 
 
