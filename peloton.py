@@ -5,6 +5,7 @@ from pandas import json_normalize
 from functools import reduce
 import os
 import openpyxl
+import datetime
 
 def peloton_login( user, pw, session):
     payload = {'username_or_email': user, 'password':pw}
@@ -29,9 +30,11 @@ def get_workout_metrics(session, workout_id):
     url = 'https://api.onepeloton.com/api/workout/{}'.format(workout_id)
     response = session.get(url)
     data = response.json()
-    #print(json.dumps(data, indent=4))
+    print(json.dumps(data, indent=4))
 
     #extract useful values
+    created_at = data['created_at']
+    workout_date = datetime.datetime.fromtimestamp(created_at)
     difficulty = data['ride']['difficulty_rating_avg']
     title = data['ride']['title']
     description = data['ride']['description']
@@ -50,10 +53,7 @@ def get_workout_metrics(session, workout_id):
     response = session.get(url)
     data = response.json()
     metrics = data['metrics']
-    print(json.dumps(metrics, indent=4))
-    #output_values = data['metrics'][0]['values']
-    #cadence_values = data['metrics'][1]['values']
-    #resistance_value = data['metrics'][2]['values']
+    #print(json.dumps(metrics, indent=4))
     output_values = list(filter(lambda x:x['slug'] == "output", metrics))[0]['values']
     cadence_values = list(filter(lambda x:x['slug'] == "cadence", metrics))[0]['values']
     resistance_values = list(filter(lambda x:x['slug'] == "resistance", metrics))[0]['values']
@@ -61,7 +61,7 @@ def get_workout_metrics(session, workout_id):
     heart_rate_values = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['values']
 
 
-    print(leaderboard_percentile)
+    print(workout_date)
 
     #print(json.dumps(output_values, indent=4))
 

@@ -126,8 +126,13 @@ print('Workout Metrics processing complete')
 df_workout_achievements = pd.DataFrame([])
 
 for workout_id in workout_ids2:
+     print('logging in again')
+     s.post('https://api.onepeloton.com/auth/login', json=payload)
      response = s.get('https://api.pelotoncycle.com/api/workout/{}/achievements'.format(workout_id))
+     #response = s.get('https://api.pelotoncycle.com/api/workout/{}/achievements')
      data3 = response.json()
+     print('printing data')
+     print(data3)
      #Flatten API response into a temporary dataframe
      df_workout_achievements_stg = json_normalize(data3['data'])
      df_workout_achievements = df_workout_achievements.append(df_workout_achievements_stg, sort=False, ignore_index=True)
