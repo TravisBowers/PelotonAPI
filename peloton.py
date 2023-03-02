@@ -6,6 +6,9 @@ from functools import reduce
 import os
 import openpyxl
 import datetime
+import matplotlib.pyplot as plt
+
+import numpy as np
 
 def peloton_login( user, pw, session):
     payload = {'username_or_email': user, 'password':pw}
@@ -49,7 +52,7 @@ def get_workout_metrics(session, workout_id):
     leaderboard_percentile = 1.0 - (float(leaderboard_rank)/float(total_leaderboard_users))
 
     # get performance data
-    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=500'.format(workout_id)
+    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=1'.format(workout_id)
     response = session.get(url)
     data = response.json()
     metrics = data['metrics']
@@ -60,12 +63,10 @@ def get_workout_metrics(session, workout_id):
     speed_values = list(filter(lambda x:x['slug'] == "speed", metrics))[0]['values']
     heart_rate_values = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['values']
 
-
+    plt.plot(np.array(heart_rate_values), '.')
+    plt.show()
     print(workout_date)
-
-    #print(json.dumps(output_values, indent=4))
-
-
+    input(' press enter to continue')
     quit()
     df_workout_metrics = json_normalize(data['metrics'])
     return df_workout_metrics
