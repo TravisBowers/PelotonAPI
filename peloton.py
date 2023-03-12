@@ -1,12 +1,9 @@
-import pandas as pd
 import requests
 import json
 from pandas import json_normalize
-from functools import reduce
 import os
-import openpyxl
 import datetime
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
 import numpy as np
 
@@ -29,47 +26,62 @@ def get_completed_rides(session, user_id):
     #print(json.dumps(data, indent=4))
     return df_workouts_raw
 
-def get_workout_metrics(session, workout_id):
+def get_workout_data(session, workout_id):
     url = 'https://api.onepeloton.com/api/workout/{}'.format(workout_id)
     response = session.get(url)
     data = response.json()
-    print(json.dumps(data, indent=4))
+    #print(json.dumps(data, indent=4))
 
     #extract useful values
+    workout_dict={}
+    
+    
     created_at = data['created_at']
-    workout_date = datetime.datetime.fromtimestamp(created_at)
-    difficulty = data['ride']['difficulty_rating_avg']
-    title = data['ride']['title']
-    description = data['ride']['description']
-    duration = data['ride']['duration']
-    image_url = data['ride']['image_url']
+    workout_dict['workout_date'] = datetime.datetime.fromtimestamp(created_at)
+    workout_dict['difficulty'] = data['ride']['difficulty_rating_avg']
+    workout_dict['title'] = data['ride']['title']
+    workout_dict['description'] = data['ride']['description']
+    workout_dict['duration'] = data['ride']['duration']
+    workout_dict['image_url'] = data['ride']['image_url']
     instructor_id = data['ride']['instructor_id']
     class_id = data['ride']['id']
     class_url = "https://members.onepeloton.com/classes/cycling?modal=classDetailsModal&classId={}".format(class_id)
     ftp_info = data['ftp_info']
     leaderboard_rank = data['leaderboard_rank']
     total_leaderboard_users = data['total_leaderboard_users']
-    leaderboard_percentile = 1.0 - (float(leaderboard_rank)/float(total_leaderboard_users))
+    #leaderboard_percentile = 1.0 - (float(leaderboard_rank)/float(total_leaderboard_users))
 
     # get performance data
-    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=1'.format(workout_id)
+    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=500'.format(workout_id)
     response = session.get(url)
-    data = response.json()
-    metrics = data['metrics']
-    #print(json.dumps(metrics, indent=4))
+    performance_graph = response.json()
+    data.update(performance_graph)
+
+     
+    
+    # print(json.dumps(data, indent=4))
+    # print(str(type(data)))
+    metrics = performance_graph['metrics']
     output_values = list(filter(lambda x:x['slug'] == "output", metrics))[0]['values']
     cadence_values = list(filter(lambda x:x['slug'] == "cadence", metrics))[0]['values']
     resistance_values = list(filter(lambda x:x['slug'] == "resistance", metrics))[0]['values']
     speed_values = list(filter(lambda x:x['slug'] == "speed", metrics))[0]['values']
     heart_rate_values = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['values']
+    heart_rate_zones = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['zones']
+    # plt.plot(np.array(heart_rate_values), '.')
+    # plt.show()
+    # print(workout_date)
+    # input(' press enter to continue')
+    return data
 
-    plt.plot(np.array(heart_rate_values), '.')
-    plt.show()
-    print(workout_date)
-    input(' press enter to continue')
-    quit()
-    df_workout_metrics = json_normalize(data['metrics'])
-    return df_workout_metrics
+def get_workout_data_list(s, workout_id_list):
+    workout_data_list = []
+    print("Gathering data for all completed rides")
+    for i in workout_id_list:
+        workout_id = i[0]
+        print("getting data for workout id: "+ str(workout_id))
+        workout_data_list.append(get_workout_data(s, workout_id))
+    return workout_data_list
 
 
 def main():
@@ -82,13 +94,12 @@ def main():
     workouts = get_completed_rides(s, user_id)
     df_workout_ids = workouts.filter(['id'], axis=1)
     workout_ids = df_workout_ids.values.tolist()
+    print("Gathering data for "+ str(len(workout_ids))+ " workouts")
+    workout_dataset = get_workout_data_list(s,workout_ids)
+    print(str(type(workout_dataset)))
+    print("data for each workout is stored as type: "+ str(type(workout_dataset[0])))
 
-    for i in workout_ids:
-        workout_id = i[0]
-        metrics = get_workout_metrics(s, workout_id)
-        #print(metrics.to_string())
 
-    #print(workout_ids)
 
 
 

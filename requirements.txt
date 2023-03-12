@@ -1,3 +1,5 @@
 pandas
 openpyxl
 requests
+matplotlib
+PyQt5
