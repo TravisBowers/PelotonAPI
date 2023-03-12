@@ -20,7 +20,7 @@ def get_user_id(session):
     return my_id
 
 def get_completed_rides(session, user_id):
-    url = "https://api.onepeloton.com/api/user/{id}/workouts?status=COMPLETE?fitness_discipline=cycling".format(id = user_id)
+    url = "https://api.onepeloton.com/api/user/{id}/workouts?status=COMPLETE?fitness_discipline=cycling&limit=10000&page=0".format(id = user_id)
     data = session.get(url).json()
     df_workouts_raw = json_normalize(data['data'])
     #print(json.dumps(data, indent=4))
@@ -95,6 +95,7 @@ def main():
     df_workout_ids = workouts.filter(['id'], axis=1)
     workout_ids = df_workout_ids.values.tolist()
     print("Gathering data for "+ str(len(workout_ids))+ " workouts")
+    quit()
     workout_dataset = get_workout_data_list(s,workout_ids)
     print(str(type(workout_dataset)))
     print("data for each workout is stored as type: "+ str(type(workout_dataset[0])))
