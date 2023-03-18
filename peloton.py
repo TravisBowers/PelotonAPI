@@ -7,6 +7,10 @@ from matplotlib import pyplot as plt
 
 import numpy as np
 
+MAX_WORKOUTS = 2
+METRICS_RESOLUTION = 100
+
+
 def peloton_login( user, pw, session):
     payload = {'username_or_email': user, 'password':pw}
     session.post('https://api.onepeloton.com/auth/login', json=payload)
@@ -20,7 +24,7 @@ def get_user_id(session):
     return my_id
 
 def get_completed_rides(session, user_id):
-    url = "https://api.onepeloton.com/api/user/{id}/workouts?status=COMPLETE?fitness_discipline=cycling&limit=10000&page=0".format(id = user_id)
+    url = "https://api.onepeloton.com/api/user/{id}/workouts?status=COMPLETE?fitness_discipline=cycling&limit={max_workouts}&page=0".format(id = user_id, max_workouts = MAX_WORKOUTS)
     data = session.get(url).json()
     df_workouts_raw = json_normalize(data['data'])
     #print(json.dumps(data, indent=4))
@@ -52,7 +56,7 @@ def get_workout_data(session, workout_id):
     #leaderboard_percentile = 1.0 - (float(leaderboard_rank)/float(total_leaderboard_users))
 
     # get performance data
-    url = 'https://api.onepeloton.com/api/workout/{}/performance_graph?every_n=500'.format(workout_id)
+    url = 'https://api.onepeloton.com/api/workout/{id}/performance_graph?every_n={metrics_resolution}'.format(id=workout_id, metrics_resolution=METRICS_RESOLUTION)
     response = session.get(url)
     performance_graph = response.json()
     data.update(performance_graph)
