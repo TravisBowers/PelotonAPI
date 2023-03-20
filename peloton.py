@@ -5,6 +5,7 @@ import os
 import datetime
 from matplotlib import pyplot as plt
 import jmespath
+import jinja2
 import numpy as np
 
 MAX_WORKOUTS = 2
@@ -54,31 +55,34 @@ def generate_workout_page( workout_dict )
     
     # print(json.dumps(data, indent=4))
     # print(str(type(data)))
-    metrics = performance_graph['metrics']
-    output_values = list(filter(lambda x:x['slug'] == "output", metrics))[0]['values']
-    cadence_values = list(filter(lambda x:x['slug'] == "cadence", metrics))[0]['values']
-    resistance_values = list(filter(lambda x:x['slug'] == "resistance", metrics))[0]['values']
-    speed_values = list(filter(lambda x:x['slug'] == "speed", metrics))[0]['values']
-    heart_rate_values = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['values']
-    heart_rate_zones = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['zones']
-    # plt.plot(np.array(heart_rate_values), '.')
-    # plt.show()
-    # print(workout_date)
-    # input(' press enter to continue')
-    created_at = data['created_at']
-    workout_dict['workout_date'] = datetime.datetime.fromtimestamp(created_at)
-    workout_dict['difficulty'] = data['ride']['difficulty_rating_avg']
-    workout_dict['title'] = data['ride']['title']
-    workout_dict['description'] = data['ride']['description']
-    workout_dict['duration'] = data['ride']['duration']
-    workout_dict['image_url'] = data['ride']['image_url']
-    instructor_id = data['ride']['instructor_id']
-    class_id = data['ride']['id']
-    class_url = "https://members.onepeloton.com/classes/cycling?modal=classDetailsModal&classId={}".format(class_id)
-    ftp_info = data['ftp_info']
-    leaderboard_rank = data['leaderboard_rank']
-    total_leaderboard_users = data['total_leaderboard_users']
+    context = {
+        'metrics' :workout_dict['metrics'],
+        'output_values': list(filter(lambda x:x['slug'] == "output", metrics))[0]['values'],
+        'cadence_values': list(filter(lambda x:x['slug'] == "cadence", metrics))[0]['values'],
+        'resistance_values': list(filter(lambda x:x['slug'] == "resistance", metrics))[0]['values'],
+        'speed_values': list(filter(lambda x:x['slug'] == "speed", metrics))[0]['values'],
+        heart_rate_values = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['values'],
+        heart_rate_zones = list(filter(lambda x:x['slug'] == "heart_rate", metrics))[0]['zones'],
+        created_at = workout_dict['created_at'],
+        workout_date = datetime.datetime.fromtimestamp(created_at),
+        workout_difficulty = workout_dict['ride']['difficulty_rating_avg'],
+        workout_title = workout_dict['ride']['title'],
+        workout_description = workout_dict['ride']['description'],
+        workout_duration = workout_dict['ride']['duration'],
+        workout_image_url = workout_dict['ride']['image_url'],
+        instructor_id = workout_dict['ride']['instructor_id'],
+        class_id = workout_dict['ride']['id'],
+        class_url = "https://members.onepeloton.com/classes/cycling?modal=classDetailsModal&classId={}".format(class_id),
+        ftp_info = workout_dict['ftp_info'],
+        leaderboard_rank = workout_dict['leaderboard_rank'],
+        total_leaderboard_users = workout_dict['total_leaderboard_users'],
+    }
     #leaderboard_percentile = 1.0 - (float(leaderboard_rank)/float(total_leaderboard_users))
+
+    environment= jinja2.Environment(loader=jinja2.FileSystemLoader("templates"))
+    template = environment.get_template("workout_summary.j2")
+    filename = "./workouts/{}.md".format(created_at)
+    content = template.render()
 
 
 def main():
