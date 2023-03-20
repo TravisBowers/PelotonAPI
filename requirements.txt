@@ -3,3 +3,5 @@ openpyxl
 requests
 matplotlib
 PyQt5
+jmespath
+jinja2
